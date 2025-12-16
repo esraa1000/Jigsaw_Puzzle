@@ -132,10 +132,10 @@ The previous descriptor-based and SSD-only methods suffered from global misalign
 6. We finetuned the parameters and were able to reduce failure cases from 6 to just 2.
 
 Images that were previously left unassembled were finally constructed:
-
+<div align = "center">
 <img width="473" height="476" alt="image" src="https://github.com/user-attachments/assets/99d9a6b1-b329-441b-bfa1-410c76bd67bb" />
 <img width="472" height="467" alt="image" src="https://github.com/user-attachments/assets/ef10c02e-d210-4cfb-96f1-164cf11c1d60" />
-
+</div>
 
 
 
@@ -250,6 +250,7 @@ Gradient Continuity & Strip Shifting improved accuracy to ~87% by considering ed
 
 The **Iron Curtain** Solver (V7_Optimized) successfully addressed dark border ambiguity by enforcing penalties on internal placement of dark edges, combined with tuned weights for cartoon-like images.
 With these enhancements, the solver achieved a 93.1% success rate, demonstrating that careful heuristic design—particularly awareness of image-specific phenomena like vignetting—can substantially improve constructive greedy algorithms on moderately complex puzzles. Remaining failures are mostly limited to featureless or highly uniform images, suggesting that further gains would require more global context or semantic understanding.
+
 
 
 
