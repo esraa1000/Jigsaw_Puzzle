@@ -97,7 +97,7 @@ The `evaluate_solver_v0` function compares each solved puzzle to the **ground tr
 - **Success**: whether the puzzle matches exactly (pixel difference < threshold).
 - **Average accuracy**: computed from pixel differences.
 - Displays **top failures and successes** for visual inspection.
-####THE OVERALL ACCURACY WAS BETTER, reaching a succes rate of 88.54%.
+#### THE OVERALL ACCURACY WAS BETTER, reaching a succes rate of 88.54%.
 
 ---
 
@@ -113,12 +113,12 @@ The `evaluate_solver_v0` function compares each solved puzzle to the **ground tr
 Still the same observation of global misalignment was present but less, like the image shown below:
 <img width="995" height="483" alt="image" src="https://github.com/user-attachments/assets/8320b67b-271e-468f-9e54-06b91a0464a0" />
 
-#Our final attempt: Hybrid Solver: ZNCC Pattern Matching + Vignette Penalty 
+# Our final attempt: Hybrid Solver: ZNCC Pattern Matching + Vignette Penalty 
 Our final approach combined color matching, pattern correlation, and vignette awareness, which resulted in a success rate of 98.18% on the 2x2 puzzles.
 
 The previous descriptor-based and SSD-only methods suffered from global misalignment, especially in images with large uniform backgrounds. Pieces could match locally but be flipped or swapped horizontally/vertically. We needed a method that preserved local edge alignment, respected global orinetation, and avoided placing dark or vignetted edges in central positions where they would confuse the solver.
 
-##The key techniques used:
+## The key techniques used:
 1. Like previous attempts, the boundaries of the pieces were extracted and converted to the LAB space.
 2. Added Pattern Matching via ZNCC:
   Zero Normalized Cross Correlation (ZNCC) along adjacent edges to match patterns (e.g., tree lines, textures), independent of exact lighting.
@@ -129,6 +129,7 @@ The previous descriptor-based and SSD-only methods suffered from global misalign
 6. We finetuned the parameters and were able to reduce failure cases from 6 to just 2.
 
 Images that were previously left unassembled were finally constructed:
+
 <img width="473" height="476" alt="image" src="https://github.com/user-attachments/assets/99d9a6b1-b329-441b-bfa1-410c76bd67bb" />
 <img width="472" height="467" alt="image" src="https://github.com/user-attachments/assets/ef10c02e-d210-4cfb-96f1-164cf11c1d60" />
 
@@ -163,6 +164,7 @@ This part illustrates the importance of combining complementary techniques, care
 
 
    
+
 
 
 
