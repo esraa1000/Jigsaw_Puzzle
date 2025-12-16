@@ -1,4 +1,3 @@
-# Jigsaw_Puzzle
 
 ## 1. Project Overview
 This project is a Python-based solver for jigsaw puzzles from the cartoon show *Gravity Falls*. The dataset contains three types of puzzles: **2×2, 4×4, and 8×8**, meaning each puzzle consists of 4, 16, or 64 pieces.
@@ -172,15 +171,22 @@ To solve this, we shifted from Brute Force to **Constructive Greedy Algorithms**
 
 ## Evolution of the Solver
 
-### 1. First Attempt: Greedy LAB Color Solver
-**Methodology:**
-We treated the puzzle as a graph problem based purely on color similarity. We extracted the 1-pixel boundary of every piece in the LAB color space and calculated the cost of connecting pieces based on the sum of absolute pixel differences (L1 Norm).
+### First Attempt: Gradient Continuity & Strip Shifting
 
-**The Failure Case:**
-This method achieved **~70% accuracy** but failed significantly on images with **Ambiguous Boundaries** (like dark scenes).
-*   **The "Dark vs. Dark" Problem:** The solver confused dark textures (a tree trunk for example) with dark backgrounds. Visually they are different, but mathematically, "black matches black."
-*   **Result:** The solver clumped all dark pieces together in the center.
+#### Methodology: 
+To fix the ambiguity, we moved beyond raw pixels to Texture Flow.
+Gradient Derivative: Instead of comparing Edge_A vs Edge_B, we compared the slope entering the edge: (Inner_A - Edge_A) vs (Edge_B - Inner_B).
+Gaussian Blur: Added to remove JPEG artifacts.
+Strip Shifting: A post-processing step that "rolls" rows and columns to fix "Cylinder" errors (where the image wraps around).
+#### The Failure Case:
+Accuracy improved to *~87%* , but a stubborn issue remained: Vignetting. Many images have naturally dark borders. The solver, seeking the "lowest cost," would connect these dark border pieces to each other in the center of the puzzle, effectively turning the puzzle inside out.
 
+<p align="center">
+ <img width="390" height="381" alt="image" src="https://github.com/user-attachments/assets/a6a2fd53-23ce-40f6-b7ee-e738a1183213" />
+ <img width="380" height="380" alt="image" src="https://github.com/user-attachments/assets/d8e785a3-927d-42ac-bbf2-950046137647" />
+</p>
+
+---
 
 ### Second Attempt: The "Iron Curtain" (Vignette-Aware Solver)
 
@@ -288,7 +294,7 @@ We designed a **greedy constructive solver** augmented with edge-based scoring, 
 - Global misalignment despite locally correct adjacency.
 - Overall accuracy: ~50%.
 
-<div align= "center">
+<div align= "center">   
 <img width="388" height="378" alt="image" src="https://github.com/user-attachments/assets/459fddf6-f8ef-460d-960f-7998f3008c9b" />
 <img width="386" height="373" alt="image" src="https://github.com/user-attachments/assets/c96d6ebd-9cf0-4085-a444-b8d2788f4dda" />
 </div>
@@ -332,6 +338,7 @@ Incremental refinements (SBB integration, refined scoring, and post-processing) 
 
 **Limitations**: Low-texture areas, ambiguous edges, and global misalignment remain challenging.  
 Future work could explore **semantic-aware features**, **pattern correlation**, or **graph-based global optimization** to increase success rate.
+
 
 
 
