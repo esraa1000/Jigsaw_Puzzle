@@ -181,24 +181,8 @@ This method achieved **~70% accuracy** but failed significantly on images with *
 *   **The "Dark vs. Dark" Problem:** The solver confused dark textures (a tree trunk for example) with dark backgrounds. Visually they are different, but mathematically, "black matches black."
 *   **Result:** The solver clumped all dark pieces together in the center.
 
-### 2. Second Attempt: Gradient Continuity & Strip Shifting
-**Methodology:**
-To fix the ambiguity, we moved beyond raw pixels to **Texture Flow**.
-*   **Gradient Derivative:** Instead of comparing `Edge_A` vs `Edge_B`, we compared the *slope* entering the edge: `(Inner_A - Edge_A)` vs `(Edge_B - Inner_B)`.
-*   **Gaussian Blur:** Added to remove JPEG artifacts.
-*   **Strip Shifting:** A post-processing step that "rolls" rows and columns to fix "Cylinder" errors (where the image wraps around).
 
-**The Failure Case:**
-Accuracy improved to **~87%**, but a stubborn issue remained: **Vignetting**.
-Many images have naturally dark borders. The solver, seeking the "lowest cost," would connect these dark border pieces to each other in the *center* of the puzzle, effectively turning the puzzle inside out.
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/6747bf48-af78-4e50-bc90-2b88c381f18a" width="280" />
-  <img src="https://github.com/user-attachments/assets/66b219c1-fb03-4da1-bf57-e5cb29e22881" width="280" />
-</div>
-
-
-
-### Final Attempt: The "Iron Curtain" (Vignette-Aware Solver)
+### Second Attempt: The "Iron Curtain" (Vignette-Aware Solver)
 
 Our final solution (V7_Optimized) introduces a logical constraint we call the **"Iron Curtain"**: a penalty system that strictly forbids dark border-like edges from being placed inside the puzzle.
 
@@ -244,9 +228,7 @@ Our final solution (V7_Optimized) introduces a logical constraint we call the **
 # Conclusion For 4x4 Puzzles
 Scaling from 2x2 to 4x4 puzzles required moving beyond brute-force approaches due to the combinatorial explosion. The evolution of our solver demonstrates the importance of incorporating domain-specific heuristics alongside greedy construction:
 
-Greedy LAB Color Solver captured basic color similarities but failed on ambiguous textures, achieving ~70% accuracy.
-
-Gradient Continuity & Strip Shifting improved accuracy to ~87% by considering edge slopes and post-processing corrections, but vignetting still caused misplacements.
+Greedy and Best Buddy LAB Color Solver captured basic color similarities but failed on ambiguous textures, achieving ~70% accuracy.
 
 The **Iron Curtain** Solver (V7_Optimized) successfully addressed dark border ambiguity by enforcing penalties on internal placement of dark edges, combined with tuned weights for cartoon-like images.
 With these enhancements, the solver achieved a 93.1% success rate, demonstrating that careful heuristic design—particularly awareness of image-specific phenomena like vignetting—can substantially improve constructive greedy algorithms on moderately complex puzzles. Remaining failures are mostly limited to featureless or highly uniform images, suggesting that further gains would require more global context or semantic understanding.
@@ -350,6 +332,7 @@ Incremental refinements (SBB integration, refined scoring, and post-processing) 
 
 **Limitations**: Low-texture areas, ambiguous edges, and global misalignment remain challenging.  
 Future work could explore **semantic-aware features**, **pattern correlation**, or **graph-based global optimization** to increase success rate.
+
 
 
 
