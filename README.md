@@ -117,7 +117,7 @@ Still the same observation of global misalignment was present but less, like the
 <img width="995" height="483" alt="image" src="https://github.com/user-attachments/assets/8320b67b-271e-468f-9e54-06b91a0464a0" />
 
 # Our final attempt: Hybrid Solver: ZNCC Pattern Matching + Vignette Penalty 
-Our final approach combined color matching, pattern correlation, and vignette awareness, which resulted in a success rate of 98.18% on the 2x2 puzzles.
+Our final approach combined color matching, pattern correlation, and vignette awareness, which resulted in a success rate of 99.1% on the 2x2 puzzles.
 
 The previous descriptor-based and SSD-only methods suffered from global misalignment, especially in images with large uniform backgrounds. Pieces could match locally but be flipped or swapped horizontally/vertically. We needed a method that preserved local edge alignment, respected global orinetation, and avoided placing dark or vignetted edges in central positions where they would confuse the solver.
 
@@ -126,10 +126,10 @@ The previous descriptor-based and SSD-only methods suffered from global misalign
 2. Added Pattern Matching via ZNCC:
   Zero Normalized Cross Correlation (ZNCC) along adjacent edges to match patterns (e.g., tree lines, textures), independent of exact lighting.
   This helped us make a distance metric: 1 - correlation (0=perfect match, 1=completely uncorrelated)
-3. We measured the average Lightness along each edge, edges below a darkness threshold are considered vignetted and heavily penalized if placed internally, avoiding misalignment due to misleading low-contrast edges.
-4. After all this computed, the cost is computed, using this formula: total_cost = color_diff + (50 * pattern_dist) + vignette_penalty
+3. We measured the average Lightness along each edge, edges below a darkness threshold are considered vignetted and heavily penalized if placed internally, avoiding misalignment due to misleading low-contrast edges, there is also an additional penalty for flat edges.
+4. After all this computed, the cost is computed, taking into account the hybrid penalty.
 5. After that, like in the first attempt, the puzzle was assembled using Brute Force.
-6. We finetuned the parameters and were able to reduce failure cases from 6 to just 2.
+6. We finetuned the parameters and were able to reduce failure cases from 6 to just 1.
 
 Images that were previously left unassembled were finally constructed:
 <div align ="center">
@@ -144,8 +144,8 @@ Final Comparison:
 | Method             | Main Issue                                                                                               | Success Rate |
 | ------------------ | -------------------------------------------------------------------------------------------------------- | ------------ |
 | Descriptor-based   | Local matches correct, global alignment often wrong, background ambiguity                                | ~80%         |
-| SSD + Best Buddy   | Better local-global consistency, but could fail with dark/vignetted edges                                | ~90–95%      |
-| **Hybrid (Final)** | Combines color, pattern correlation, and dark-edge penalties to ensure both local and global correctness | **98.3%**    |
+| SSD + Best Buddy   | Better local-global consistency, but could fail with dark/vignetted edges                                | ~90%         |
+| **Hybrid (Final)** | Combines color, pattern correlation, and dark-edge penalties to ensure both local and global correctness | **99.1%**    |
 
 
 
@@ -350,6 +350,7 @@ Incremental refinements (SBB integration, refined scoring, and post-processing) 
 
 **Limitations**: Low-texture areas, ambiguous edges, and global misalignment remain challenging.  
 Future work could explore **semantic-aware features**, **pattern correlation**, or **graph-based global optimization** to increase success rate.
+
 
 
 
