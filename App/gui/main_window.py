@@ -11,7 +11,7 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 from pipeline.utils import split_grid
 from pipeline.solver_2x2 import JigsawSolverHybrid
-from pipeline.solver_4x4 import JigsawSolver4x4
+from pipeline.solver_4x4 import JigsawSolverV7_HybridGUI
 from pipeline.solver_8x8 import JigsawSolver8x8Clean
 
 
@@ -39,7 +39,7 @@ class SolverWorker(QThread):
         if self.dimension == "2x2":
             solver = JigsawSolverHybrid(pieces)
         elif self.dimension == "4x4":
-            solver = JigsawSolver4x4(pieces)
+            solver = JigsawSolverV7_HybridGUI(pieces)
         else:  # 8x8
             solver = JigsawSolver8x8Clean(pieces)
 
