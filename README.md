@@ -241,7 +241,7 @@ Our final solution (V7_Optimized) introduces a logical constraint we call the **
 
 ---
 
-# Conclusion for 4x4 Puzzle
+# Conclusion For 4x4 Puzzles
 Scaling from 2x2 to 4x4 puzzles required moving beyond brute-force approaches due to the combinatorial explosion. The evolution of our solver demonstrates the importance of incorporating domain-specific heuristics alongside greedy construction:
 
 Greedy LAB Color Solver captured basic color similarities but failed on ambiguous textures, achieving ~70% accuracy.
@@ -250,6 +250,7 @@ Gradient Continuity & Strip Shifting improved accuracy to ~87% by considering ed
 
 The **Iron Curtain** Solver (V7_Optimized) successfully addressed dark border ambiguity by enforcing penalties on internal placement of dark edges, combined with tuned weights for cartoon-like images.
 With these enhancements, the solver achieved a 93.1% success rate, demonstrating that careful heuristic design—particularly awareness of image-specific phenomena like vignetting—can substantially improve constructive greedy algorithms on moderately complex puzzles. Remaining failures are mostly limited to featureless or highly uniform images, suggesting that further gains would require more global context or semantic understanding.
+
 
 
 
