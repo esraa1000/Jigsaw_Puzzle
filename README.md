@@ -157,16 +157,99 @@ Our final hybrid solver, combining color matching, pattern correlation (ZNCC), a
 
 This part illustrates the importance of combining complementary techniques, carefully analyzing failure cases, and designing domain-specific heuristics to maximize solver performance. 
 
+# 4x4 Jigsaw Puzzle Solver (16 Pieces)
 
+> **Current Success Rate:** 93.1%  
+> **Approach:** Constructive Greedy Algorithm with Heuristic Refinement ("The Iron Curtain")
 
-  
+##  Overview
 
+Moving from 4 pieces (2x2) to 16 pieces (4x4) introduces exponential complexity. While a brute-force approach worked for 4 pieces ($4! = 24$ combinations), checking all permutations for 16 pieces ($16! \approx 20.9$ trillion) is computationally impossible. 
 
+To solve this, we shifted from Brute Force to **Constructive Greedy Algorithms** combined with domain-specific heuristics to handle edge ambiguity.
+
+---
+
+## Evolution of the Solver
+
+### 1. First Attempt: Greedy LAB Color Solver
+**Methodology:**
+We treated the puzzle as a graph problem based purely on color similarity. We extracted the 1-pixel boundary of every piece in the LAB color space and calculated the cost of connecting pieces based on the sum of absolute pixel differences (L1 Norm).
+
+**The Failure Case:**
+This method achieved **~70% accuracy** but failed significantly on images with **Ambiguous Boundaries** (like dark scenes).
+*   **The "Dark vs. Dark" Problem:** The solver confused dark textures (a tree trunk for example) with dark backgrounds. Visually they are different, but mathematically, "black matches black."
+*   **Result:** The solver clumped all dark pieces together in the center.
+
+### 2. Second Attempt: Gradient Continuity & Strip Shifting
+**Methodology:**
+To fix the ambiguity, we moved beyond raw pixels to **Texture Flow**.
+*   **Gradient Derivative:** Instead of comparing `Edge_A` vs `Edge_B`, we compared the *slope* entering the edge: `(Inner_A - Edge_A)` vs `(Edge_B - Inner_B)`.
+*   **Gaussian Blur:** Added to remove JPEG artifacts.
+*   **Strip Shifting:** A post-processing step that "rolls" rows and columns to fix "Cylinder" errors (where the image wraps around).
+
+**The Failure Case:**
+Accuracy improved to **~87%**, but a stubborn issue remained: **Vignetting**.
+Many images have naturally dark borders. The solver, seeking the "lowest cost," would connect these dark border pieces to each other in the *center* of the puzzle, effectively turning the puzzle inside out.
+<img width="571" height="564" alt="image" src="https://github.com/user-attachments/assets/6747bf48-af78-4e50-bc90-2b88c381f18a" />
+<img width="555" height="550" alt="image" src="https://github.com/user-attachments/assets/66b219c1-fb03-4da1-bf57-e5cb29e22881" />
+
+---
+
+### Final Attempt: The "Iron Curtain" (Vignette-Aware Solver)
+
+Our final solution (V7_Optimized) introduces a logical constraint we call the **"Iron Curtain"**: a penalty system that strictly forbids dark border-like edges from being placed inside the puzzle.
+
+#### Key Techniques:
+
+1.  **Dynamic Vignette Detection**
+    For every piece, we compare the edge lightness against the piece's average lightness.
+    ```python
+    # Check if edge is significantly darker than the piece average
+    thresh = min(FIXED_DARK_THRESH, piece_avg_L * 0.6)
+    is_dark_edge = np.mean(edge_pixels) < thresh
+    ```
+
+2.  **The "Iron Curtain" Penalty**
+    If the solver attempts to connect a flagged `is_dark` edge to another piece (implying an internal connection), we apply a massive penalty.
+    ```python
+    VIGNETTE_PENALTY = 1e9  # Effectively Infinite
+    if is_dark['bottom'][i] or is_dark['top'][j]:
+        cost += VIGNETTE_PENALTY
+    ```
+    This forces the solver to push dark edges to the boundaries of the grid.
+
+3.  **Tuned Weights for Cartoons**
+    *   **L-Channel Weight (2.0):** We doubled the weight of the Lightness channel. Cartoon outlines are defined by luminance, not hue.
+    *   **Ratio Weight (30.0):** Increased penalty for "unsure" matches, forcing the solver to rely only on high-confidence connections.
+
+4.  **Refinement Pipeline**
+    *   **Topology Correction:** Cyclically rolling rows/cols.
+    *   **Swapping:** Brute-force swapping of local pieces to fix remaining errors.
+
+---
+
+## Performance Comparison
+
+| Method | Main Logic | Primary Failure Mode | Success Rate |
+| :--- | :--- | :--- | :--- |
+| **Greedy LAB** | Raw Pixel Difference | **Ambiguity:** Confused dark sky with dark trees. | ~70% |
+| **Gradient Flow** | 1st-Order Derivatives | **Inversion:** Border pieces placed in the center. | ~87% |
+| **Iron Curtain (Final)** | Vignette Penalty + Tuned Weights | **Minimal:** Only fails on featureless images. | **93.1%** |
+
+---
+
+## Usage
+
+### Dependencies
+```bash
+pip install opencv-python numpy tqdm matplotlib
 
      
 
 
    
+
 
 
 
