@@ -53,6 +53,7 @@ For the 2x2 puzzles, we initially attempted a **brute-force solver using handcra
 ### Our Second Attempt: SSD-Only Brute-Force Solver
 
 ## Overview
+
 This solver attempts to solve the 2x2 jigsaw puzzles using **Sum of Squared Differences (SSD)** on the outer edges of the pieces, combined with a **Best Buddy (BB) bonus** to encourage mutually strong matches. From what we learned from pur first attempt is that are descriptors are adding a lot of metrics into account that may be confusing the solver but didn't resolve the global ambiguity, and sometimes even made things worse because they emphasized minor differences that weren't relevant alignment. That's why switching to SSD with a Best Buddy check helped improve consistency: SSD focus directly on edge differences and the BB bonus encourages mutually strong matches, which partially enforces global consistency.
 ---
 ### How the Solver Works
@@ -165,6 +166,7 @@ This part illustrates the importance of combining complementary techniques, care
 
 
    
+
 
 
 
