@@ -339,8 +339,9 @@ Incremental refinements (SBB integration, refined scoring, and post-processing) 
 **Limitations**: Low-texture areas, ambiguous edges, and global misalignment remain challenging.  
 Future work could explore **semantic-aware features**, **pattern correlation**, or **graph-based global optimization** to increase success rate.
 
-# **Or, for the truly lazy (and brilliant), just use deep learning and let the AI figure it out 😄 — easier, faster, and way more fun!**
+# **Or, for the truly lazy (and brilliant), just use deep learning and let the AI figure it out; easier, faster, and way more fun 🙄**
 <img width="250" height="252" alt="image" src="https://github.com/user-attachments/assets/1a9d2beb-baa8-446b-bad0-eb9c7423ad78" />
+
 
 
 
