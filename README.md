@@ -241,16 +241,10 @@ Our final solution (V7_Optimized) introduces a logical constraint we call the **
 
 ---
 
-## Usage
-
-### Dependencies
-```bash
-pip install opencv-python numpy tqdm matplotlib
-
-     
 
 
    
+
 
 
 
