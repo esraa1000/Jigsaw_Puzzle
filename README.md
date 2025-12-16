@@ -191,10 +191,12 @@ To fix the ambiguity, we moved beyond raw pixels to **Texture Flow**.
 **The Failure Case:**
 Accuracy improved to **~87%**, but a stubborn issue remained: **Vignetting**.
 Many images have naturally dark borders. The solver, seeking the "lowest cost," would connect these dark border pieces to each other in the *center* of the puzzle, effectively turning the puzzle inside out.
-<img width="571" height="564" alt="image" src="https://github.com/user-attachments/assets/6747bf48-af78-4e50-bc90-2b88c381f18a" />
-<img width="555" height="550" alt="image" src="https://github.com/user-attachments/assets/66b219c1-fb03-4da1-bf57-e5cb29e22881" />
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/6747bf48-af78-4e50-bc90-2b88c381f18a" width="280" />
+  <img src="https://github.com/user-attachments/assets/66b219c1-fb03-4da1-bf57-e5cb29e22881" width="280" />
+</div>
 
----
+
 
 ### Final Attempt: The "Iron Curtain" (Vignette-Aware Solver)
 
@@ -249,6 +251,7 @@ pip install opencv-python numpy tqdm matplotlib
 
 
    
+
 
 
 
