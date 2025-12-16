@@ -13,7 +13,7 @@ We divided the project into **three separate pipelines**, one for each puzzle ty
 In the following sections, we break down each pipeline, discuss the **techniques used**, and show how we addressed **failure cases** to improve the solver.
 
 ## 3. The 2x2 solver
-###Our first Attempt: Descriptor-Based Brute Force Attempt
+### Our first Attempt: Descriptor-Based Brute Force Attempt
 For the 2x2 puzzles, we initially attempted a **brute-force solver using handcrafted descriptors**
 
 1. **Edge Descriptors**
@@ -43,7 +43,7 @@ For the 2x2 puzzles, we initially attempted a **brute-force solver using handcra
 #### Challenges and Failure cases
   - While this approach is exhaustive, it relied heavily on the descriptors.
   - In some images, edges had similar colors or gradients, causing mismatches.
-    -####The main problem:
+    -#### The main problem:
       
        Pieces were correctly matched locally but not aligned globally, meaning, like the image shown below, the pieces were correctly matched vertically but the right and left were flipped, this was the case for at least 10 pictures, so the overall accuracy was a little below 80%, so this method was doing generally well, but failing in cases where the background is dominant like in this picture.
      <img width="999" height="480" alt="image" src="https://github.com/user-attachments/assets/7cdf49af-cfd9-440a-b1a5-5e66723110ff" />
@@ -341,6 +341,7 @@ Future work could explore **semantic-aware features**, **pattern correlation**, 
 
 # **Or, for the truly lazy (and brilliant), just use deep learning and let the AI figure it out; easier, faster, and way more fun 🙄**
 <img width="250" height="252" alt="image" src="https://github.com/user-attachments/assets/1a9d2beb-baa8-446b-bad0-eb9c7423ad78" />
+
 
 
 
