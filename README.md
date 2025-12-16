@@ -146,7 +146,7 @@ Final Comparison:
 
 
 
-#Conclusion for 2x2 puzzles
+# Conclusion for 2x2 puzzles
 Through a series of iterative approaches, we demonstarted that solving 2x2 jigsaw puzzles with image processing alone is feasible, even without machine learning. Starting from descriptor-based matching, we encountered challenged with global misalignment and ambiguous edges. Transitioning to an SSD-based solver with Best Buddy logic improved consistency, but certain dark or uniform regions caused errors. 
 
 Our final hybrid solver, combining color matching, pattern correlation (ZNCC), and vignette-aware penalties, achieved a success rate of 98.3%, effectively handling both local edge compatibility and global piece arrangement. Only a few edge cases with extreme vignetting remained unsolved, highlighting the robustness and precision of our approach.
@@ -163,6 +163,7 @@ This part illustrates the importance of combining complementary techniques, care
 
 
    
+
 
 
 
