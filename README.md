@@ -117,7 +117,7 @@ Still the same observation of global misalignment was present but less, like the
 <img width="995" height="483" alt="image" src="https://github.com/user-attachments/assets/8320b67b-271e-468f-9e54-06b91a0464a0" />
 
 # Our final attempt: Hybrid Solver: ZNCC Pattern Matching + Vignette Penalty 
-Our final approach combined color matching, pattern correlation, and vignette awareness, which resulted in a success rate of 98.18% on the 2x2 puzzles.
+Our final approach combined color matching, pattern correlation, and vignette awareness, which resulted in a success rate of 99.1% on the 2x2 puzzles.
 
 The previous descriptor-based and SSD-only methods suffered from global misalignment, especially in images with large uniform backgrounds. Pieces could match locally but be flipped or swapped horizontally/vertically. We needed a method that preserved local edge alignment, respected global orinetation, and avoided placing dark or vignetted edges in central positions where they would confuse the solver.
 
@@ -126,10 +126,10 @@ The previous descriptor-based and SSD-only methods suffered from global misalign
 2. Added Pattern Matching via ZNCC:
   Zero Normalized Cross Correlation (ZNCC) along adjacent edges to match patterns (e.g., tree lines, textures), independent of exact lighting.
   This helped us make a distance metric: 1 - correlation (0=perfect match, 1=completely uncorrelated)
-3. We measured the average Lightness along each edge, edges below a darkness threshold are considered vignetted and heavily penalized if placed internally, avoiding misalignment due to misleading low-contrast edges.
-4. After all this computed, the cost is computed, using this formula: total_cost = color_diff + (50 * pattern_dist) + vignette_penalty
+3. We measured the average Lightness along each edge, edges below a darkness threshold are considered vignetted and heavily penalized if placed internally, avoiding misalignment due to misleading low-contrast edges, there is also an additional penalty for flat edges.
+4. After all this computed, the cost is computed, taking into account the hybrid penalty.
 5. After that, like in the first attempt, the puzzle was assembled using Brute Force.
-6. We finetuned the parameters and were able to reduce failure cases from 6 to just 2.
+6. We finetuned the parameters and were able to reduce failure cases from 6 to just 1.
 
 Images that were previously left unassembled were finally constructed:
 <div align ="center">
@@ -144,8 +144,8 @@ Final Comparison:
 | Method             | Main Issue                                                                                               | Success Rate |
 | ------------------ | -------------------------------------------------------------------------------------------------------- | ------------ |
 | Descriptor-based   | Local matches correct, global alignment often wrong, background ambiguity                                | ~80%         |
-| SSD + Best Buddy   | Better local-global consistency, but could fail with dark/vignetted edges                                | ~90–95%      |
-| **Hybrid (Final)** | Combines color, pattern correlation, and dark-edge penalties to ensure both local and global correctness | **98.3%**    |
+| SSD + Best Buddy   | Better local-global consistency, but could fail with dark/vignetted edges                                | ~90%         |
+| **Hybrid (Final)** | Combines color, pattern correlation, and dark-edge penalties to ensure both local and global correctness | **99.1%**    |
 
 
 
@@ -250,6 +250,109 @@ Gradient Continuity & Strip Shifting improved accuracy to ~87% by considering ed
 
 The **Iron Curtain** Solver (V7_Optimized) successfully addressed dark border ambiguity by enforcing penalties on internal placement of dark edges, combined with tuned weights for cartoon-like images.
 With these enhancements, the solver achieved a 93.1% success rate, demonstrating that careful heuristic design—particularly awareness of image-specific phenomena like vignetting—can substantially improve constructive greedy algorithms on moderately complex puzzles. Remaining failures are mostly limited to featureless or highly uniform images, suggesting that further gains would require more global context or semantic understanding.
+
+# 8x8 Jigsaw Puzzle Solver (64 Pieces)
+
+> **Current Success Rate:** 50–52%  
+> **Approach:** Constructive Greedy Algorithm with Heuristic Refinement
+
+## 1. Overview
+
+Moving from 4x4 (16 pieces) to 8x8 (64 pieces) puzzles introduces significant combinatorial complexity. Brute-force solutions are impossible (64! arrangements).  
+We designed a **greedy constructive solver** augmented with edge-based scoring, mutual best buddies (BB), single best buddies (SBB), and post-processing refinements to handle local ambiguities.
+
+---
+
+## 2. First Attempt – Greedy Candidate Growth (~50% Success)
+
+### Methodology:
+
+1. **Feature Extraction**
+   - Each piece is blurred with Gaussian filter to reduce noise.
+   - LAB color space is used for perceptual consistency.
+   - Extracted edges (`top`, `bottom`, `left`, `right`) and inner-edge gradients.
+   - Standard deviation of edges computed to penalize "boring vs boring" matches.
+
+2. **Cost Calculation**
+   - Vertical cost (`bottom_i -> top_j`) and horizontal cost (`right_i -> left_j`) computed as:
+     ```
+     cost = |edge_diff| + W_GRAD * |gradient_diff| + detail_penalty
+     ```
+   - Detail penalty applied if both edges have low standard deviation (<5.0).
+
+3. **Normalization**
+   - Min-max normalization applied to vertical and horizontal costs to produce `norm_ver` and `norm_hor`.
+
+4. **Best Buddies**
+   - **Mutual BB:** `i` and `j` are mutual best buddies if each is the minimum cost neighbor of the other.
+   - **Single BB (SBB):** `i`’s lowest cost neighbor regardless of `j`’s preference.
+   - Ratios of best-to-second-best costs computed to quantify ambiguity.
+
+5. **Greedy Growth**
+   - Start from high-confidence BB pairs.
+   - Iteratively add pieces to empty slots with lowest average dynamic cost.
+   - Slot selection respects grid bounds (`8x8`).
+
+6. **Post-Processing Refinements**
+   - **Strip Shifting:** Rolls rows/columns to fix cylinder-like misalignment.
+   - **Row/Column Swapping:** Brute-force swaps to fix scrambled sequences (scrambled forest effect).
+
+---
+
+### Failure Cases:
+
+- Large low-texture regions caused ambiguous placements.
+- Cylindrical wrapping errors, where rows/columns misaligned.
+- Global misalignment despite locally correct adjacency.
+- Overall accuracy: ~50%.
+
+<div align= "center">
+<img width="388" height="378" alt="image" src="https://github.com/user-attachments/assets/459fddf6-f8ef-460d-960f-7998f3008c9b" />
+<img width="386" height="373" alt="image" src="https://github.com/user-attachments/assets/c96d6ebd-9cf0-4085-a444-b8d2788f4dda" />
+</div>
+
+---
+
+## 3. Second Attempt – Enhanced SBB & Refined Grid Scoring (~52% Success)
+
+### Changes From First Version:
+
+1. **Enhanced Single Best Buddy (SBB) Integration**
+   - SBBs used during candidate generation to reduce solver stalls when mutual BBs are sparse.
+   - Helps guide piece placement even in ambiguous regions.
+
+2. **Refined Grid Scoring**
+   - Stronger reward for BB matches.
+   - Smaller reward for SBB matches.
+   - Larger penalty for mismatched neighbors to enforce local consistency.
+
+3. **Aggressive Post-Processing**
+   - Strip shifting applied more consistently.
+   - Row/column swapping expanded to correct scrambled forests and misaligned sequences.
+
+4. **Ratio-Based Ambiguity Penalties**
+   - Low-confidence matches penalized more heavily to avoid early misplacements propagating.
+
+---
+
+### Remaining Challenges:
+
+- Uniform, low-texture regions are still difficult.
+- Global misalignment occurs when many ambiguous edges exist.
+- Success rate slightly improved: ~52%.
+
+---
+
+## 4. Conclusion
+
+The 8x8 puzzle solver demonstrates how **constructive greedy algorithms** can handle larger puzzles with domain-specific heuristics.  
+Incremental refinements (SBB integration, refined scoring, and post-processing) improved success from 50% to 52%.  
+
+**Limitations**: Low-texture areas, ambiguous edges, and global misalignment remain challenging.  
+Future work could explore **semantic-aware features**, **pattern correlation**, or **graph-based global optimization** to increase success rate.
+
+
+
 
 
 
