@@ -1,6 +1,6 @@
-from gui.main_window import PuzzleGUI
-from PyQt6.QtWidgets import QApplication
 import sys
+from PyQt6.QtWidgets import QApplication
+from gui.main_window import PuzzleGUI
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

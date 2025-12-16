@@ -1,28 +1,75 @@
-from PyQt6.QtWidgets import (
-    QWidget, QPushButton, QLabel, QFileDialog, QVBoxLayout, QHBoxLayout,
-    QLineEdit, QFrame, QMessageBox
-)
-from PyQt6.QtGui import QPixmap, QFont
-from PyQt6.QtCore import Qt
-from pipeline.preprocessing import run_preprocessing
-from gui.steps_window import StepsWindow
 import os
+import cv2
+
+from PyQt6.QtWidgets import (
+    QWidget, QPushButton, QLabel, QLineEdit, QFrame,
+    QVBoxLayout, QHBoxLayout, QMessageBox, QSizePolicy,
+    QProgressBar
+)
+from PyQt6.QtGui import QPixmap, QFont, QImage
+from PyQt6.QtCore import Qt, QThread, pyqtSignal
+
+from pipeline.utils import split_grid
+from pipeline.solver_2x2 import JigsawSolverHybrid
+from pipeline.solver_4x4 import JigsawSolver4x4
+from pipeline.solver_8x8 import JigsawSolver8x8Clean
 
 
+# ============================
+# CONFIG
+# ============================
+DATASET_BASE = r"D:\College\Junior\Semester 1\Image Processing\Project\dataset"
+
+
+# ==========================================================
+# WORKER THREAD (SOLVER)
+# ==========================================================
+class SolverWorker(QThread):
+    finished = pyqtSignal(object)
+
+    def __init__(self, image, dimension):
+        super().__init__()
+        self.image = image
+        self.dimension = dimension
+
+    def run(self):
+        N = int(self.dimension[0])  # "2x2" → 2
+        pieces = split_grid(self.image, N, N)
+
+        if self.dimension == "2x2":
+            solver = JigsawSolverHybrid(pieces)
+        elif self.dimension == "4x4":
+            solver = JigsawSolver4x4(pieces)
+        else:  # 8x8
+            solver = JigsawSolver8x8Clean(pieces)
+
+        result = solver.solve()
+        self.finished.emit(result)
+
+
+# ==========================================================
+# MAIN GUI
+# ==========================================================
 class PuzzleGUI(QWidget):
     def __init__(self):
         super().__init__()
 
-        self.setWindowTitle("Jigsaw Puzzle Solver - Classical CV")
+        self.setWindowTitle("Jigsaw Puzzle Solver – Classical CV")
         self.setMinimumSize(1000, 700)
 
+        self.selected_dimension = None
+        self.current_pixmap = None
+        self.worker = None
+
+        # ============================
+        # STYLE
+        # ============================
         self.setStyleSheet("""
             QWidget {
                 background-color: #f0f0f0;
                 font-family: 'Segoe UI';
                 color: black;
             }
-
             QPushButton {
                 background-color: #4a90e2;
                 color: white;
@@ -30,30 +77,24 @@ class PuzzleGUI(QWidget):
                 border-radius: 8px;
                 font-size: 14px;
             }
-
             QPushButton:hover {
                 background-color: #3b79bf;
             }
-
             QPushButton:disabled {
                 background-color: #9bbdde;
                 color: #eeeeee;
             }
-
             QLineEdit {
                 padding: 8px 12px;
                 font-size: 14px;
                 border-radius: 8px;
                 border: 1px solid #cccccc;
             }
-
             QFrame#TopBar {
                 background-color: white;
                 border-radius: 12px;
                 border: 1px solid #cccccc;
-                padding: 10px;
             }
-
             QFrame#ImageFrame {
                 background-color: white;
                 border-radius: 12px;
@@ -61,79 +102,85 @@ class PuzzleGUI(QWidget):
             }
         """)
 
-        self.image_path = None
-        self.steps = None
-        self.selected_dimension = None
-        self.puzzle_number = None
-
-        # Buttons
-        # self.upload_btn = QPushButton("Upload Image")
-        # self.upload_btn.clicked.connect(self.load_image)
-
-        # Dimension buttons
+        # ============================
+        # DIMENSION BUTTONS
+        # ============================
         self.dim_2x2_btn = QPushButton("2x2")
         self.dim_4x4_btn = QPushButton("4x4")
         self.dim_8x8_btn = QPushButton("8x8")
-        for btn in [self.dim_2x2_btn, self.dim_4x4_btn, self.dim_8x8_btn]:
+
+        for btn in (self.dim_2x2_btn, self.dim_4x4_btn, self.dim_8x8_btn):
             btn.setCheckable(True)
             btn.clicked.connect(self.select_dimension)
 
-        # Puzzle number input
+        # ============================
+        # INPUT
+        # ============================
         self.puzzle_input = QLineEdit()
         self.puzzle_input.setPlaceholderText("Puzzle number (0–109)")
 
-        # self.run_btn = QPushButton("Run Preprocessing")
-        # self.run_btn.clicked.connect(self.run_pipeline)
-
+        # ============================
+        # BUTTONS
+        # ============================
         self.show_puzzle_btn = QPushButton("Show Puzzle")
         self.show_puzzle_btn.clicked.connect(self.show_puzzle)
 
         self.solve_btn = QPushButton("Solve")
         self.solve_btn.clicked.connect(self.solve_puzzle)
 
+        # ============================
+        # PROGRESS BAR
+        # ============================
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
+        self.progress_bar.setRange(0, 0)  # Indeterminate
 
-        # self.show_steps_btn = QPushButton("Show Steps")
-        # self.show_steps_btn.setEnabled(False)
-        # self.show_steps_btn.clicked.connect(self.open_steps_window)
-
-        # Image preview
-        self.image_label = QLabel("No puzzle chosen")
+        # ============================
+        # IMAGE LABEL
+        # ============================
+        self.image_label = QLabel("No puzzle selected")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setFont(QFont("Segoe UI", 14))
-        self.image_label.setStyleSheet("color: #555555; padding: 30px;")
+        self.image_label.setStyleSheet("background-color: #fafafa;")
+        self.image_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
+        )
 
-        # Top bar frame
+        # ============================
+        # TOP BAR
+        # ============================
         top_bar_frame = QFrame()
         top_bar_frame.setObjectName("TopBar")
         top_bar_frame.setFixedHeight(100)
 
         top_bar = QHBoxLayout()
-        top_bar.setContentsMargins(10, 5, 10, 5)
-        top_bar.setSpacing(12)
         top_bar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        top_bar.setSpacing(12)
 
-        #top_bar.addWidget(self.upload_btn)
         top_bar.addWidget(self.dim_2x2_btn)
         top_bar.addWidget(self.dim_4x4_btn)
         top_bar.addWidget(self.dim_8x8_btn)
         top_bar.addWidget(self.puzzle_input)
-        # top_bar.addWidget(self.run_btn)
-        top_bar.addWidget(self.show_puzzle_btn)  
+        top_bar.addWidget(self.show_puzzle_btn)
         top_bar.addWidget(self.solve_btn)
-        # top_bar.addWidget(self.show_steps_btn)
-
 
         top_bar_frame.setLayout(top_bar)
 
-        # Image frame
+        # ============================
+        # IMAGE FRAME
+        # ============================
         image_frame = QFrame()
         image_frame.setObjectName("ImageFrame")
+
         image_layout = QVBoxLayout()
-        image_layout.setContentsMargins(10, 10, 10, 10)
         image_layout.addWidget(self.image_label)
+        image_layout.addWidget(self.progress_bar)
         image_frame.setLayout(image_layout)
 
-        # Main layout
+        # ============================
+        # MAIN LAYOUT
+        # ============================
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(15)
@@ -142,136 +189,90 @@ class PuzzleGUI(QWidget):
 
         self.setLayout(main_layout)
 
-    def load_image(self):
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Select Puzzle Image", "",
-            "Images (*.png *.jpg *.jpeg)"
-        )
-        if path:
-            self.image_path = path
-            pixmap = QPixmap(path)
-            self.image_label.setPixmap(
-                pixmap.scaled(600, 600, Qt.AspectRatioMode.KeepAspectRatio,
-                              Qt.TransformationMode.SmoothTransformation)
-            )
-
+    # ==========================================================
+    # LOGIC
+    # ==========================================================
     def select_dimension(self):
         sender = self.sender()
         self.selected_dimension = sender.text()
-
-        # Uncheck other buttons
-        for btn in [self.dim_2x2_btn, self.dim_4x4_btn, self.dim_8x8_btn]:
+        for btn in (self.dim_2x2_btn, self.dim_4x4_btn, self.dim_8x8_btn):
             if btn != sender:
                 btn.setChecked(False)
 
-
     def show_puzzle(self):
-        
-        if not self.selected_dimension or self.puzzle_input.text() == "":
-            QMessageBox.warning(self, "Error", "Select dimension and enter puzzle number first.")
-            return
-        # Determine folder based on selected dimension
-        if self.selected_dimension == "2x2":
-            folder = "C:\\Users\\Nada Serour\\Jigsaw_Puzzle\\dataset\\puzzle_2x2"
-        elif self.selected_dimension == "4x4":
-            folder = "C:\\Users\\Nada Serour\\Jigsaw_Puzzle\\dataset\\puzzle_4x4"
-        elif self.selected_dimension == "8x8":
-            folder = "C:\\Users\\Nada Serour\\Jigsaw_Puzzle\\dataset\\puzzle_8x8"
-        else:
-            QMessageBox.warning(self, "Error", "Invalid dimension selected.")
+        if not self.selected_dimension:
+            QMessageBox.warning(self, "Error", "Select a dimension.")
             return
 
-         # Validate puzzle number
-        puzzle_number = self.puzzle_input.text()
-        if not puzzle_number.isdigit():
+        if not self.puzzle_input.text().isdigit():
             QMessageBox.warning(self, "Error", "Enter a valid puzzle number.")
             return
-        puzzle_number = int(puzzle_number)
-         # Find the file with supported extensions
-        for ext in ["jpg", "png", "jpeg"]:
-            potential_path = os.path.join(folder, f"{puzzle_number}.{ext}")
-            if os.path.exists(potential_path):
-                pixmap = QPixmap(potential_path)
-                self.image_label.setPixmap(
-                    pixmap.scaled(600, 600, Qt.AspectRatioMode.KeepAspectRatio,
-                                  Qt.TransformationMode.SmoothTransformation)
-             )
-            return
 
-        QMessageBox.warning(self, "Error", f"Puzzle {puzzle_number} not found in {folder}.")
+        puzzle_number = int(self.puzzle_input.text())
+        folder = os.path.join(DATASET_BASE, f"puzzle_{self.selected_dimension}")
 
-    def solve_puzzle(self):
-    # Check dimension selected
-        if not self.selected_dimension:
-            QMessageBox.warning(self, "Error", "Select a puzzle dimension first.")
-            return
-
-        # Check puzzle number
-        puzzle_text = self.puzzle_input.text()
-        if not puzzle_text.isdigit() or not (0 <= int(puzzle_text) <= 109):
-            QMessageBox.warning(self, "Error", "Enter a valid puzzle number (0–109).")
-            return
-        puzzle_number = int(puzzle_text)
-        # Determine image path
-        base_folder = "C:\\Users\\Nada Serour\\Jigsaw_Puzzle\\dataset"
-        folder_map = {
-            "2x2": "puzzle_2x2",
-            "4x4": "puzzle_4x4",
-            "8x8": "puzzle_8x8"
-        }
-        folder = os.path.join(base_folder, folder_map[self.selected_dimension])
-
-        # Find original image
-        for ext in ["jpg", "png", "jpeg"]:
-            orig_path = os.path.join(folder, f"{puzzle_number}.{ext}")
-            if os.path.exists(orig_path):
-                break
-            else:
-                QMessageBox.warning(self, "Error", f"Puzzle {puzzle_number} not found in {folder}.")
+        for ext in ("jpg", "png", "jpeg"):
+            path = os.path.join(folder, f"{puzzle_number}.{ext}")
+            if os.path.exists(path):
+                self.current_pixmap = QPixmap(path)
+                self._update_image()
                 return
 
-        # Display original image on the left
-        pixmap_orig = QPixmap(orig_path)
-        self.left_label.setPixmap(
-            pixmap_orig.scaled(500, 500, Qt.AspectRatioMode.KeepAspectRatio,
-                               Qt.TransformationMode.SmoothTransformation)
-        )
-        # Call the corresponding pipeline
-        if self.selected_dimension == "2x2":
-            from pipeline.pipeline_2x2 import run_pipeline as pipeline_func
-        elif self.selected_dimension == "4x4":
-            from pipeline.pipeline_4x4 import run_pipeline as pipeline_func
+        QMessageBox.warning(self, "Error", "Puzzle not found.")
+
+    def solve_puzzle(self):
+        if not self.selected_dimension:
+            QMessageBox.warning(self, "Error", "Select a dimension.")
+            return
+
+        if not self.puzzle_input.text().isdigit():
+            QMessageBox.warning(self, "Error", "Enter a valid puzzle number.")
+            return
+
+        puzzle_number = int(self.puzzle_input.text())
+        folder = os.path.join(DATASET_BASE, f"puzzle_{self.selected_dimension}")
+
+        for ext in ("jpg", "png", "jpeg"):
+            path = os.path.join(folder, f"{puzzle_number}.{ext}")
+            if os.path.exists(path):
+                break
         else:
-            from pipeline.pipeline_8x8 import run_pipeline as pipeline_func
-
-        # Run pipeline and get final result image path
-        result_path = pipeline_func(orig_path)  # pipeline should return the result image file path
-
-        # Display result image on the right
-        pixmap_result = QPixmap(result_path)
-        self.right_label.setPixmap(
-            pixmap_result.scaled(500, 500, Qt.AspectRatioMode.KeepAspectRatio,
-                                 Qt.TransformationMode.SmoothTransformation)
-        )
-    def run_pipeline(self):
-        if not self.image_path:
+            QMessageBox.warning(self, "Error", "Puzzle not found.")
             return
 
-        # Run preprocessing (Milestone 1)
-        final_edges, self.steps = run_preprocessing(self.image_path)
+        image = cv2.imread(path)
 
-        # Display the edges result
-        pixmap = QPixmap("./output/steps/Edges.png")
+        self.solve_btn.setEnabled(False)
+        self.progress_bar.setVisible(True)
+
+        self.worker = SolverWorker(image, self.selected_dimension)
+        self.worker.finished.connect(self.on_solve_finished)
+        self.worker.start()
+
+    def on_solve_finished(self, result):
+        h, w, ch = result.shape
+        qimg = QImage(result.data, w, h, ch * w, QImage.Format.Format_BGR888)
+        self.current_pixmap = QPixmap.fromImage(qimg)
+
+        self._update_image()
+        self.progress_bar.setVisible(False)
+        self.solve_btn.setEnabled(True)
+
+    # ==========================================================
+    # IMAGE RESIZE HANDLING
+    # ==========================================================
+    def _update_image(self):
+        if self.current_pixmap is None:
+            return
+
         self.image_label.setPixmap(
-            pixmap.scaled(600, 600, Qt.AspectRatioMode.KeepAspectRatio,
-                          Qt.TransformationMode.SmoothTransformation)
+            self.current_pixmap.scaled(
+                self.image_label.size(),
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation
+            )
         )
 
-        self.show_steps_btn.setEnabled(True)
-
-    def open_steps_window(self):
-        if self.steps is None:
-            return
-        
-        self.steps_window = StepsWindow(self.steps)
-        self.steps_window.show()
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_image()
