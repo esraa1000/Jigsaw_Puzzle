@@ -327,7 +327,7 @@ We designed a **greedy constructive solver** augmented with edge-based scoring, 
 
 - Uniform, low-texture regions are still difficult.
 - Global misalignment occurs when many ambiguous edges exist.
-- Success rate slightly improved: ~52%.
+- Success rate slightly improved: 52.73%.
 
 ---
 
@@ -338,6 +338,7 @@ Incremental refinements (SBB integration, refined scoring, and post-processing) 
 
 **Limitations**: Low-texture areas, ambiguous edges, and global misalignment remain challenging.  
 Future work could explore **semantic-aware features**, **pattern correlation**, or **graph-based global optimization** to increase success rate.
+
 
 
 
