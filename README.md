@@ -343,13 +343,14 @@ We designed a **greedy constructive solver** augmented with edge-based scoring, 
 
 ---
 
-## 5. Conclusion
+## 4. Conclusion
 
 The 8x8 puzzle solver demonstrates how **constructive greedy algorithms** can handle larger puzzles with domain-specific heuristics.  
 Incremental refinements (SBB integration, refined scoring, and post-processing) improved success from 50% to 52%.  
 
 **Limitations**: Low-texture areas, ambiguous edges, and global misalignment remain challenging.  
 Future work could explore **semantic-aware features**, **pattern correlation**, or **graph-based global optimization** to increase success rate.
+
 
 
 
